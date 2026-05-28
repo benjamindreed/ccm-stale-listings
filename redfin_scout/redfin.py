@@ -8,8 +8,21 @@
 #   Both status=9 and status=1 return searchStatus=1 (Active) homes.
 #   mlsStatus values seen: "Active", "Active Under Contract"
 #
-# King County WA: region_id=118, region_type=2
-#   (Original task spec had region_id=1346 which maps to Maine/Boston, not WA)
+# King County WA: region_id=118, region_type=5
+#   (Original task spec had region_id=1346 which maps to MA/Boston, not WA)
+#
+# Verified county region IDs (region_type=5 = county in Redfin):
+# COUNTIES = {
+#     "King":      (118,  5),   # /county/118/WA/King-County
+#     "Snohomish": (2,    5),   # /county/2/WA/Snohomish-County
+#     "Pierce":    (3096, 5),   # /county/3096/WA/Pierce-County
+#     "Skagit":    (3098, 5),   # /county/3098/WA/Skagit-County
+#     "Kitsap":    (3087, 5),   # /county/3087/WA/Kitsap-County
+#     "Kittitas":  (3088, 5),   # /county/3088/WA/Kittitas-County
+#     "Chelan":    (3074, 5),   # /county/3074/WA/Chelan-County
+# }
+# Each ID confirmed by: (1) matching Redfin /county/{id}/WA/{Name}-County URL,
+# (2) GIS API returning 50 homes all in WA with correct county cities.
 #
 # dom param: NOT supported server-side
 #   Sending dom=30 (or min_days_on_market, daysOnMarket, min_dom, market_time)
@@ -21,7 +34,7 @@
 # totalCount is always None in response; pagination ends when homes=[]
 #
 # ── Request params (King County WA active for-sale) ────────────────────────
-# al=1, region_id=118, region_type=2, uipt=1,2,3,5, status=9,
+# al=1, region_id=118, region_type=5, uipt=1,2,3,5, status=9,
 # num_homes=50, start=0, v=8
 #
 # ── Response field paths (homes array) ─────────────────────────────────────
