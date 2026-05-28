@@ -99,6 +99,14 @@ def test_red_fill_score_below_30():
         assert ws.cell(2, 1).fill.fgColor.rgb == "FFFFC7CE"
 
 
+def test_sheet_name_matches_filename_date():
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "redfin_scout_2026-05-28.xlsx")
+        write_excel([make_scored()], path)
+        wb = load_workbook(path)
+        assert wb.sheetnames[0] == "Redfin Scout 2026-05-28"
+
+
 def test_rows_sorted_by_score_descending():
     with tempfile.TemporaryDirectory() as d:
         path = os.path.join(d, "out.xlsx")

@@ -34,8 +34,8 @@
 # totalCount is always None in response; pagination ends when homes=[]
 #
 # ── Request params (King County WA active for-sale) ────────────────────────
-# al=1, region_id=118, region_type=5, uipt=1,2,3,5, status=9,
-# num_homes=50, start=0, v=8
+# al=1, region_id=118, region_type=5, uipt=1,2,3,4,5, status=9,
+# num_homes=50, start=0, v=8 (uipt: 1=SFR, 2=Condo, 3=Townhouse, 4=Multi-family, 5=Other)
 #
 # ── Response field paths (homes array) ─────────────────────────────────────
 # MLS ID:         homes[n]["mlsId"]["value"]          (string, e.g. "2528303")
@@ -150,9 +150,9 @@ class RedfinClient:
                         listing.agent_email = agent.get("email")
                         listing.agent_phone = agent.get("phone")
                     listings.append(listing)
-            if not more or len(homes) == 0:
+            if len(homes) == 0:
                 break
-            start += PAGE_SIZE
+            start += len(homes)
             time.sleep(1)
         return listings
 
@@ -172,7 +172,8 @@ class RedfinClient:
                 resp = requests.get(REDFIN_GIS_URL, params=params, headers=HEADERS, timeout=30)
                 if resp.status_code != 200:
                     logger.warning("Redfin returned %s (attempt %d)", resp.status_code, attempt + 1)
-                    time.sleep(2 ** (attempt + 1))
+                    if attempt < MAX_RETRIES - 1:
+                        time.sleep(2 ** (attempt + 1))
                     continue
                 raw = resp.text[4:] if resp.text.startswith("{}&&") else resp.text
                 data = json.loads(raw)
@@ -180,7 +181,8 @@ class RedfinClient:
                 return payload.get("homes", []), payload.get("moreDataAvailable", False)
             except Exception as exc:
                 logger.warning("Redfin request failed (attempt %d): %s", attempt + 1, exc)
-                time.sleep(2 ** (attempt + 1))
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(2 ** (attempt + 1))
         logger.error("Redfin: all retries exhausted for region_id=%d start=%d", region_id, start)
         return None
 

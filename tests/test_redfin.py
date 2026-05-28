@@ -27,6 +27,15 @@ MOCK_PAYLOAD = json.dumps({
     }
 })
 
+EMPTY_PAYLOAD = json.dumps({
+    "errorMessage": "success",
+    "resultCode": 0,
+    "payload": {
+        "homes": [],
+        "moreDataAvailable": False,
+    }
+})
+
 
 def make_resp(body: str, status: int = 200) -> MagicMock:
     m = MagicMock()
@@ -37,7 +46,7 @@ def make_resp(body: str, status: int = 200) -> MagicMock:
 
 def test_parses_listing_fields():
     client = RedfinClient()
-    with patch("redfin_scout.redfin.requests.get", return_value=make_resp(MOCK_PAYLOAD)):
+    with patch("redfin_scout.redfin.requests.get", side_effect=[make_resp(MOCK_PAYLOAD), make_resp(EMPTY_PAYLOAD)]):
         listings = client.fetch_county_listings(region_id=118, county="King")
     assert len(listings) == 1
     l = listings[0]
@@ -56,7 +65,7 @@ def test_dom_filter_excludes_under_30():
         "payload": {"homes": [MOCK_HOME, fresh_home], "moreDataAvailable": False}
     })
     client = RedfinClient()
-    with patch("redfin_scout.redfin.requests.get", return_value=make_resp(body)):
+    with patch("redfin_scout.redfin.requests.get", side_effect=[make_resp(body), make_resp(EMPTY_PAYLOAD)]):
         listings = client.fetch_county_listings(region_id=118, county="King")
     assert len(listings) == 1
     assert listings[0].mls_id == "MLS123"
@@ -69,7 +78,7 @@ def test_distressed_listing_excluded_at_parse():
         "payload": {"homes": [distressed], "moreDataAvailable": False}
     })
     client = RedfinClient()
-    with patch("redfin_scout.redfin.requests.get", return_value=make_resp(body)):
+    with patch("redfin_scout.redfin.requests.get", side_effect=[make_resp(body), make_resp(EMPTY_PAYLOAD)]):
         listings = client.fetch_county_listings(region_id=118, county="King")
     assert listings == []
 
@@ -81,7 +90,7 @@ def test_no_price_listing_excluded():
         "payload": {"homes": [no_price], "moreDataAvailable": False}
     })
     client = RedfinClient()
-    with patch("redfin_scout.redfin.requests.get", return_value=make_resp(body)):
+    with patch("redfin_scout.redfin.requests.get", side_effect=[make_resp(body), make_resp(EMPTY_PAYLOAD)]):
         listings = client.fetch_county_listings(region_id=118, county="King")
     assert listings == []
 
@@ -90,7 +99,7 @@ def test_retries_on_non_200_then_succeeds():
     fail = make_resp("{}", status=429)
     success = make_resp(MOCK_PAYLOAD)
     client = RedfinClient()
-    with patch("redfin_scout.redfin.requests.get", side_effect=[fail, fail, success]):
+    with patch("redfin_scout.redfin.requests.get", side_effect=[fail, fail, success, make_resp(EMPTY_PAYLOAD)]):
         with patch("redfin_scout.redfin.time.sleep"):
             listings = client.fetch_county_listings(region_id=118, county="King")
     assert len(listings) == 1
@@ -116,7 +125,7 @@ MOCK_AGENT = json.dumps({
 
 def test_agent_profile_enriches_email_and_phone():
     client = RedfinClient()
-    with patch("redfin_scout.redfin.requests.get", side_effect=[make_resp(MOCK_PAYLOAD), make_resp(MOCK_AGENT)]):
+    with patch("redfin_scout.redfin.requests.get", side_effect=[make_resp(MOCK_PAYLOAD), make_resp(MOCK_AGENT), make_resp(EMPTY_PAYLOAD)]):
         listings = client.fetch_county_listings(region_id=118, county="King")
     assert listings[0].agent_email == "jane@testrealty.com"
     assert listings[0].agent_phone == "206-555-9876"
@@ -129,8 +138,8 @@ def test_agent_profile_cached_across_listings():
         "errorMessage": "success", "resultCode": 0,
         "payload": {"homes": [MOCK_HOME, home2], "moreDataAvailable": False}
     })
-    with patch("redfin_scout.redfin.requests.get", side_effect=[make_resp(two_homes), make_resp(MOCK_AGENT)]) as mock_get:
+    with patch("redfin_scout.redfin.requests.get", side_effect=[make_resp(two_homes), make_resp(MOCK_AGENT), make_resp(EMPTY_PAYLOAD)]) as mock_get:
         listings = client.fetch_county_listings(region_id=118, county="King")
-    # 1 search call + 1 agent profile call (cached for second listing)
-    assert mock_get.call_count == 2
+    # 1 search call + 1 agent profile call (cached for second listing) + 1 empty page to terminate
+    assert mock_get.call_count == 3
     assert all(l.agent_email == "jane@testrealty.com" for l in listings)

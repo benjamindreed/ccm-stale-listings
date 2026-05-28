@@ -1,3 +1,4 @@
+import os
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font
 from openpyxl.utils import get_column_letter
@@ -22,8 +23,10 @@ def _price_history_str(history: list[dict]) -> str:
 
 def write_excel(listings: list[ScoredListing], output_path: str) -> None:
     sorted_listings = sorted(listings, key=lambda sl: sl.score, reverse=True)
+    date_str = os.path.basename(output_path).replace("redfin_scout_", "").replace(".xlsx", "")
     wb = Workbook()
     ws = wb.active
+    ws.title = f"Redfin Scout {date_str}"
 
     for col, header in enumerate(HEADERS, start=1):
         cell = ws.cell(row=1, column=col, value=header)
