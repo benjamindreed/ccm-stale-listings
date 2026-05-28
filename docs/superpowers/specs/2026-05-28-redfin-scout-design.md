@@ -105,7 +105,7 @@ Results cached by `(email, phone)` pair for the duration of the run.
 **Notes:**
 - DOM 45–59: +25. DOM 60+: +25 + +20 = +45 total for DOM alone
 - Score is clamped to a minimum of 0
-- Maximum possible score is 135 (all positive rules, no negatives)
+- Maximum possible score is 95 (25+20+15+10+10+10+5 — all positive rules, no negatives)
 - Missing fields: written as `[MISSING]` in output, never left blank
 
 ---
